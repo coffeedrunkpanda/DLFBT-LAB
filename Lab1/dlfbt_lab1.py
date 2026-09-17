@@ -177,7 +177,7 @@ class LogisticRegressionModel(LinearRegressionModel):
     def __init__(self, d=2):
         LinearRegressionModel.__init__(self, d)
 
-    def sigmoid(z):
+    def sigmoid(self, z):
         """
         Calculates the sigmoid function on input z, element-wise
 
@@ -194,7 +194,22 @@ class LogisticRegressionModel(LinearRegressionModel):
         return 1.0 / (1.0 + np.exp(-z))
 
     # --- TO-DO block: Overwrite the methods of the LinearRegressionModel class
-    pass
+    def predict(self, x):
+        y = super().predict(x)
+
+        return self.sigmoid(y)
+
+    # The gradients for the logistic regression with Cross-entropy are the same for the Linear + MSE
+    def compute_gradients(self,x,t):
+        return super().compute_gradients(x,t)
+
+    # If the gradients are the same, the step will also be the same
+    def gradient_step(self, x, t, eta):
+        return super().gradient_step(x,t,eta)
+
+    def fit(self, x,t,eta,num_iters):
+        return super().fit(x,t,eta,num_iters)
+    
     # --- End of TO-DO block
 
     def get_loss(self, x, t):
