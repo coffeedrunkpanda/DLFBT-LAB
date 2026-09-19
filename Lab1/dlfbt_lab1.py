@@ -262,7 +262,13 @@ class BasicTF:
 
         # --- TO-DO block: Define the computational graph within a gradient tape and
         # --- compute the gradient
-        pass
+        with tf.GradientTape() as tape:
+            # Note: f is a lambda function, then it is called like f(x)
+            y = f(x)
+
+        # Derivative of y with respect to x (of type tf.Variable) using tensorflow
+        dy_dx = tape.gradient(y,x)
+
         # --- End of TO-DO block
 
         return dy_dx
@@ -294,11 +300,16 @@ class BasicTF:
         for i in range(niters):
             # --- TO-DO block: Define the computational graph within a gradient tape and
             # --- compute the gradient
-            pass
+
+            dy_dx = BasicTF.differentiate(f, x)
+
             # --- End of TO-DO block
 
             # --- TO-DO block: Update the value of x using the tf.Variable assign method
-            pass
+            
+            # Update x the same way we update the weights and biases (using a learning rate eta)
+            x = x - eta * dy_dx
+
             # --- End of TO-DO block
 
             x_history.append(x.numpy())
