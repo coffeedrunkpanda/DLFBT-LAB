@@ -358,7 +358,12 @@ class LinearRegressionModel_TF(object):
 
         """
         # --- TO-DO block: Compute the model output y
-        pass
+        
+        # x[Nxd] * w[dx1] + b[1,1] broadcasted
+
+        # The matrix multiplication is performed using the tensorflow function matmul.
+        y = tf.matmul(x, self.w) + self.b
+
         # --- End of TO-DO block
 
         return y
@@ -384,7 +389,16 @@ class LinearRegressionModel_TF(object):
              Gradient of the loss with respect to the weights, shape (d, 1)
         """
         # --- TO-DO block: Compute the gradients db and dw of the loss function
-        pass
+        
+        # Note: We use the loss that is already implemented in the class. Since y is also
+        # calculated in this function, tensorflow is capable of tracking the variable and
+        # obtaining the gradient.
+        with tf.GradientTape() as tape:
+            loss = self.get_loss(x,t)
+
+        # The gradients are obtained with respect to the weights and biases.
+        db, dw = tape.gradient(loss, [self.b, self.w])
+        
         # --- End of TO-DO block
 
         return db, dw
@@ -406,7 +420,14 @@ class LinearRegressionModel_TF(object):
         db, dw = self.compute_gradients(x, t)
 
         # --- TO-DO block: Update the model parameters b and w
-        pass
+
+        # Note: here is necessary to use assign_sub instead of -= so because tensorflow would convert
+        # a tf.Variable into a tf.Tensor. That would completely lose the track of the variables and thus
+        # preventing us from obtaining the gradients. The proper way to update the variables is then
+        # use assign_sub. 
+        self.b.assign_sub(eta*db) 
+        self.w.assign_sub(eta*dw)
+
         # --- End of TO-DO block
 
     def fit(self, x, t, eta, num_iters):
