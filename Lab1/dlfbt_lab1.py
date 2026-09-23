@@ -665,7 +665,8 @@ class NeuralNetwork(object):
         # --- by the last layer, it may be useful to traverse the lists backwards.
 
         # Last layer
-        delta = dy * self.da[-1](z[-1])
+        # delta = dL/dy * self.da[-1](z[-1]) dy is already dL/dz
+        delta = dy
 
         for i_layer in range(self.nlayers -1, -1, -1):
 
@@ -901,19 +902,12 @@ class NeuralNetwork_TF(object):
         """
         # --- TO-DO block: compute the gradients db, dW using the gradient tape
         
-        db = []
-        dW = []
+        with tf.GradientTape(persistent=True) as tape:
+            loss = self.get_loss(x,t, loss_function)
 
-        for i_layer in range(self.nlayers):
-
-            with tf.GradientTape() as tape:
-                loss = self.get_loss(x,t, loss_function)
-
-            db_layer, dw_layer = tape.gradient(loss, [self.b[i_layer], self.W[i_layer]])
+        db = tape.gradient(loss, self.b)
+        dW = tape.gradient(loss, self.W)
         
-            db.append(db_layer)
-            dW.append(dw_layer)
-
         # --- End of TO-DO block        
         return db, dW
 
