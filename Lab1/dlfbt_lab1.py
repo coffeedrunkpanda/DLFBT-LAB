@@ -605,7 +605,7 @@ class NeuralNetwork(object):
         # --- activation and the activation and appending them to lists z and y.
         for i_layer in range(self.nlayers):
 
-            #  Pre-activation : z = W[ 1,d] @  X[d,N] + b[1,1] (broadcasted) for each layer
+            #  Pre-activation : z = W[ d_layer,d_next_layer] @  X[d_layer,N] + b[1,1] (broadcasted) for each layer
             z_temp = self.W[i_layer] @ x + self.b[i_layer]
 
             # Activation: y = f(z)
@@ -862,7 +862,13 @@ class NeuralNetwork_TF(object):
         # --- TO-DO block: loop in the network layers computing the activations.
         # --- The activation of the last layer should be stored at variable y to
         # --- be returned.
-        pass
+        
+        for i_layer in range(self.nlayers):
+            # pre-activation
+            z = tf.matmul(self.W[i_layer], x) + self.b[i_layer]
+            x = self.a[i_layer](z)
+
+        y = x
         # --- End of TO-DO block
 
         return y
@@ -893,9 +899,21 @@ class NeuralNetwork_TF(object):
             the weights of each layer, for input batch x.
         """
         # --- TO-DO block: compute the gradients db, dW using the gradient tape
-        pass
-        # --- End of TO-DO block
+        
+        db = []
+        dW = []
 
+        for i_layer in range(self.nlayers):
+
+            with tf.GradientTape() as tape:
+                loss = self.get_loss(x,t, loss_function)
+
+            db_layer, dw_layer = tape.gradient(loss, [self.b[i_layer], self.W[i_layer]])
+        
+            db.append(db_layer)
+            dW.append(dw_layer)
+
+        # --- End of TO-DO block        
         return db, dW
 
     # ---------------------------------------------------------------------------
@@ -920,7 +938,9 @@ class NeuralNetwork_TF(object):
         dB, dW = self.compute_gradients(x, t, loss_function)
 
         # --- TO-DO block: Loop in layers updating the model parameters b and w
-        pass
+        for i_layer in range(self.nlayers):
+            self.W[i_layer].assign_sub(eta*dW[i_layer])
+            self.b[i_layer].assign_sub(eta*dB[i_layer])
         # --- End of TO-DO block
 
     def fit(self, x, t, eta, num_epochs, batch_size, loss_function):
