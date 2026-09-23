@@ -308,7 +308,7 @@ class BasicTF:
             # --- TO-DO block: Update the value of x using the tf.Variable assign method
             
             # Update x the same way we update the weights and biases (using a learning rate eta)
-            x = x - eta * dy_dx
+            x.assign( x - eta * dy_dx)
 
             # --- End of TO-DO block
 
@@ -578,7 +578,7 @@ class NeuralNetwork(object):
         loss = -np.mean(t * np.log(y) + (1.0 - t) * np.log(1.0 - y))
         return loss
 
-    def predict(self, x):
+    def predict(self, x): 
         """
         Predicts (forward pass) output y for input batch x
 
@@ -603,7 +603,21 @@ class NeuralNetwork(object):
         y = []
         # --- TO-DO block: loop in the network layers computing both the pre-
         # --- activation and the activation and appending them to lists z and y.
-        pass
+        for i_layer in range(self.nlayers):
+
+            #  Pre-activation : z = W[ 1,d] @  X[d,N] + b[1,1] (broadcasted) for each layer
+            z_temp = self.W[i_layer] @ x + self.b[i_layer]
+
+            # Activation: y = f(z)
+            y_temp = self.a[i_layer](z_temp)
+
+            # Update the vector for the pre-activation and activation
+            z.append(z_temp)
+            y.append(y_temp)
+
+            # Update x to be the output of the layer
+            x = y_temp
+
         # --- End of TO-DO block
 
         return z, y
@@ -649,7 +663,27 @@ class NeuralNetwork(object):
         # --- TO-DO block: loop in the network layers computing the gradients with
         # --- respect to W and b. Note that the gradients must be computed starting
         # --- by the last layer, it may be useful to traverse the lists backwards.
-        pass
+
+        delta = dy * self.da[-1](z[-1])
+
+        for i_layer in range(self.nlayers -1, -1, -1):
+
+            if i_layer == 0:
+                dw_layer = np.matmul(delta, np.transpose(x))
+                # Calculating the mean using through a scalar product to maintain dimensionality 
+                db_layer = np.matmul(delta, np.ones((n,1)))
+                dW.insert(0, dw_layer) 
+                db.insert(0, db_layer)
+            else: 
+                dw_layer = np.matmul(delta, np.transpose(y[i_layer-1]))
+                # Calculating the mean using through a scalar product to maintain dimensionality 
+                db_layer = np.matmul(delta, np.ones((n,1)))
+                dW.insert(0, dw_layer)
+                db.insert(0, db_layer)
+
+                # Update delta for the next layer
+                delta = np.matmul(self.W[i_layer].transpose(), delta) * self.da[i_layer-1](z[i_layer-1])
+
         # --- End of TO-DO block
 
         return dW, db
@@ -671,7 +705,10 @@ class NeuralNetwork(object):
         dW, db = self.compute_gradients(x, t)
 
         # --- TO-DO block: Loop in layers updating the model parameters b and w
-        pass
+        for i_layer in range(self.nlayers):
+            self.W[i_layer] -= eta*dW[i_layer]
+            self.b[i_layer] -= eta*db[i_layer]
+
         # --- End of TO-DO block
 
     def fit(self, x, t, eta, num_epochs, batch_size, loss_function):
