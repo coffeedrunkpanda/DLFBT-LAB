@@ -664,26 +664,27 @@ class NeuralNetwork(object):
         # --- respect to W and b. Note that the gradients must be computed starting
         # --- by the last layer, it may be useful to traverse the lists backwards.
 
+        # Last layer
         delta = dy * self.da[-1](z[-1])
 
         for i_layer in range(self.nlayers -1, -1, -1):
 
-            if i_layer == 0:
-                dw_layer = np.matmul(delta, np.transpose(x))
-                # Calculating the mean using through a scalar product to maintain dimensionality 
-                db_layer = np.matmul(delta, np.ones((n,1)))
-                dW.insert(0, dw_layer) 
-                db.insert(0, db_layer)
-            else: 
+            if i_layer > 0:
                 dw_layer = np.matmul(delta, np.transpose(y[i_layer-1]))
-                # Calculating the mean using through a scalar product to maintain dimensionality 
-                db_layer = np.matmul(delta, np.ones((n,1)))
-                dW.insert(0, dw_layer)
-                db.insert(0, db_layer)
+            else:
+                # When i_layer-1 is the input layer
+                dw_layer = np.matmul(delta, np.transpose(x))
+            
+            db_layer = np.sum(delta, axis=1, keepdims=True)
 
-                # Update delta for the next layer
+            # Save gradients
+            dW.insert(0, dw_layer) 
+            db.insert(0, db_layer)
+
+            # Update delta while i_layer-1 is a hidden layer (not the input layer)
+            if i_layer > 0:
                 delta = np.matmul(self.W[i_layer].transpose(), delta) * self.da[i_layer-1](z[i_layer-1])
-
+            
         # --- End of TO-DO block
 
         return dW, db
