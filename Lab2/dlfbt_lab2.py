@@ -135,32 +135,49 @@ def prepare_data(
     assert (test_size + val_size)<1
 
     # first split -> train+validation(temp) and test.
-    X_temp, X_test, y_temp, y_test = train_test_split (X, y, test_size=test_size, random_state=random_state)
+    X_temp, X_test, y_temp, y_test = train_test_split (X,
+                                                       y,
+                                                       test_size=test_size,
+                                                       random_state=random_state,
+                                                       stratify=y)
 
     # compute the validation fraction relative to train+validation.
     # TODO: verify if shuffle is needed again or not
     val_fraction = val_size/(1-test_size)
-    X_train, X_val, y_train, y_val = train_test_split (X_temp, y_temp, test_size=val_fraction, random_state=random_state, shuffle = False)
+    X_train, X_val, y_train, y_val = train_test_split (X_temp,
+                                                       y_temp,
+                                                       test_size=val_fraction,
+                                                       random_state=random_state,
+                                                       stratify=y_temp)
 
-    # Create the return structure
-    output = DataSplit(X_train=X_train,
-                       X_val=X_val,
-                       X_test=X_test,
-                       y_train=y_train,
-                       y_test=y_test,
-                       y_val = y_val,
-                       scaler=None)
+    if not normalize:
+        
+        # Create the return structure
+        output = DataSplit(X_train=X_train,
+                        X_val=X_val,
+                        X_test=X_test,
+                        y_train=y_train,
+                        y_test=y_test,
+                        y_val = y_val,
+                        scaler=None)
 
-    if normalize:
+    else:
         scaler = StandardScaler()
 
         # Fit only on X_train to avoid data leakage
         fitted_scaler = scaler.fit(X_train)
         X_train = fitted_scaler.transform(X_train)
+        X_val = fitted_scaler.transform(X_val)
+        X_test = fitted_scaler.transform(X_test)
 
-        # Update output DataSplit
-        output.X_train = X_train
-        output.scaler = fitted_scaler
+        # Create the return structure
+        output = DataSplit(X_train=X_train,
+                        X_val=X_val,
+                        X_test=X_test,
+                        y_train=y_train,
+                        y_test=y_test,
+                        y_val = y_val,
+                        scaler=fitted_scaler)
 
     return output
 
@@ -186,7 +203,7 @@ def build_baseline_model(input_dim, hidden_units=8):
 
     model = tf.keras.Sequential([
         tf.keras.layers.Input(shape = (input_dim, )),
-        tf.keras.layers.Dense(hidden_units, activation='sigmoid'),
+        tf.keras.layers.Dense(hidden_units, activation='relu'),
         tf.keras.layers.Dense(1, activation='sigmoid')
     ])
 
@@ -223,17 +240,21 @@ def compile_binary_model(
     Compile the model and return it.
     """
 
-    # TODO:
-    # If optimizer is a string AND learning_rate is provided,
-    # create the appropriate tf.keras.optimizers.* object.
+    OPTIMIZERS = [
+        'Adam',
+        "SGD",
+        "RMSprop",
+        "Adagrad"
+    ]
 
+    optimizers_keys = [item.upper() for item in OPTIMIZERS]
+    optimizers_dict = dict(zip(optimizers_keys, OPTIMIZERS))
+    
     configured_optimizer = None
     if type(optimizer) == str and learning_rate:
-
-        if optimizer == "adam":
-            configured_optimizer = tf.keras.optimizers.Adam(learning_rate)
-
-        # TODO: implement for other optimizers as well?? 
+        
+        configured_optimizer = tf.keras.optimizers.get(optimizers_dict[optimizer.upper()])
+        configured_optimizer.learning_rate = learning_rate
                 
     model.compile(
         optimizer = (configured_optimizer if configured_optimizer!= None else optimizer),
@@ -299,7 +320,7 @@ def train_model(
         validation_data = (split.X_val, split.y_val),
         epochs = epochs,
         batch_size = batch_size,
-        callbacks = early_stopping,
+        callbacks = [early_stopping],
         verbose = verbose
     )
 
@@ -327,7 +348,12 @@ def evaluate_model(model, split):
     # TODO:
     # loss, accuracy = model.evaluate(...)
 
-    raise NotImplementedError("TODO: implement evaluate_model")
+    loss, accuracy = model.evaluate(
+        x = split.X_test,
+        y = split.y_test,
+    )
+
+    return {"test_loss": loss, "test_accuracy": accuracy}
 
 
 def build_improved_model(input_dim):
