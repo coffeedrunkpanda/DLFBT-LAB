@@ -47,16 +47,19 @@ def load_phoneme():
     Load the dataset and split the last column from the remaining columns.
     """
 
-    # TODO: load the CSV.
-    # dataset = ...
+    # load the CSV.
+    data_path = "../data/lab2/phoneme.csv"
+    dataset = np.genfromtxt(data_path, delimiter=",")
 
-    # TODO: perform a shape / validity check.
+    # perform a shape / validity check.
+    assert (5404, 6) == dataset.shape
 
-    # TODO:
-    # X = ...
-    # y = ...
+    n_samples, n_features = dataset.shape
+    
+    X = dataset[:, :(n_features -1)] # Get first 5 columns
+    y = dataset[:, (n_features -1) ].astype(int) # Get only last column and cast to int
 
-    raise NotImplementedError("TODO: implement load_phoneme")
+    return X, y
 
 
 def dataset_overview(X, y):
@@ -129,18 +132,37 @@ def prepare_data(
     """
 
     # TODO: validate test_size and val_size.
+    assert (test_size + val_size)<1
 
-    # TODO: first split -> train+validation and test.
+    # first split -> train+validation(temp) and test.
+    X_temp, X_test, y_temp, y_test = train_test_split (X, y, test_size=test_size, random_state=random_state)
 
-    # TODO: compute the validation fraction relative to train+validation.
+    # compute the validation fraction relative to train+validation.
+    # TODO: verify if shuffle is needed again or not
+    val_fraction = val_size/(1-test_size)
+    X_train, X_val, y_train, y_val = train_test_split (X_temp, y_temp, test_size=val_fraction, random_state=random_state, shuffle = False)
 
-    # TODO: second split -> train and validation.
+    # Create the return structure
+    output = DataSplit(X_train=X_train,
+                       X_val=X_val,
+                       X_test=X_test,
+                       y_train=y_train,
+                       y_test=y_test,
+                       y_val = y_val,
+                       scaler=None)
 
-    # TODO: optionally fit StandardScaler ONLY on X_train.
+    if normalize:
+        scaler = StandardScaler()
 
-    # TODO: return DataSplit(...)
+        # Fit only on X_train to avoid data leakage
+        fitted_scaler = scaler.fit(X_train)
+        X_train = fitted_scaler.transform(X_train)
 
-    raise NotImplementedError("TODO: implement prepare_data")
+        # Update output DataSplit
+        output.X_train = X_train
+        output.scaler = fitted_scaler
+
+    return output
 
 
 def build_baseline_model(input_dim, hidden_units=8):
