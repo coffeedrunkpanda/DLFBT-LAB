@@ -184,10 +184,13 @@ def build_baseline_model(input_dim, hidden_units=8):
     Create and return the Keras Sequential model.
     """
 
-    # TODO:
-    # model = tf.keras.Sequential([...])
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape = (input_dim, )),
+        tf.keras.layers.Dense(hidden_units, activation='sigmoid'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
 
-    raise NotImplementedError("TODO: implement build_baseline_model")
+    return model
 
 
 def compile_binary_model(
@@ -224,12 +227,21 @@ def compile_binary_model(
     # If optimizer is a string AND learning_rate is provided,
     # create the appropriate tf.keras.optimizers.* object.
 
-    # TODO:
-    # model.compile(
-    #
-    # )
+    configured_optimizer = None
+    if type(optimizer) == str and learning_rate:
 
-    raise NotImplementedError("TODO: implement compile_binary_model")
+        if optimizer == "adam":
+            configured_optimizer = tf.keras.optimizers.Adam(learning_rate)
+
+        # TODO: implement for other optimizers as well?? 
+                
+    model.compile(
+        optimizer = (configured_optimizer if configured_optimizer!= None else optimizer),
+        loss = "binary_crossentropy",
+        metrics = ["accuracy"]
+    )
+
+    return model
 
 
 def make_early_stopping(patience=20):
@@ -278,10 +290,20 @@ def train_model(
     Call `model.fit(...)` with the appropriate arguments.
     """
 
-    # TODO:
-    # history = model.fit(...)
+    early_stopping = make_early_stopping(patience=patience)
 
-    raise NotImplementedError("TODO: implement train_model")
+    # https://www.tensorflow.org/api_docs/python/tf/keras/Model#fit
+    history = model.fit(
+        x = split.X_train,
+        y = split.y_train,
+        validation_data = (split.X_val, split.y_val),
+        epochs = epochs,
+        batch_size = batch_size,
+        callbacks = early_stopping,
+        verbose = verbose
+    )
+
+    return history
 
 
 def evaluate_model(model, split):
