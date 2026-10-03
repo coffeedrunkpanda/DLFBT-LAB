@@ -377,12 +377,20 @@ def build_improved_model(input_dim):
     ----
     Build, compile and return the model.
     """
+    # Updated Architecture
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input((input_dim,)),
+        tf.keras.layers.Dense(32, activation = "relu"),
+        tf.keras.layers.Dropout(0.15),
+        tf.keras.layers.Dense(16, activation = "relu"),
+        tf.keras.layers.Dense(1, "sigmoid")
+    ])
 
-    # TODO: build the architecture.
+    # compile the model
+    model = compile_binary_model(model, optimizer="adam", learning_rate=0.01)
+    
+    return model
 
-    # TODO: compile it, preferably by reusing compile_binary_model(...).
-
-    raise NotImplementedError("TODO: implement build_improved_model")
 
 
 def build_regularized_model(input_dim, l2_strength=1e-4):
