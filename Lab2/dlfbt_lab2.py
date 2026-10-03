@@ -560,25 +560,50 @@ def run_optimizer_experiment(
     Implement one complete experiment.
     """
 
-    # TODO: make the run reproducible.
+    # make the run reproducible.
+    set_reproducible(seed)
 
-    # TODO: build model.
+    # build model.
+    input_dim = split.X_train.shape[1]
+    model = build_dropout_model(input_dim=input_dim, rate = 0.15)
+    # model = build_regularized_model(input_dim=input_dim, l2_strength= 2e-2)
 
-    # TODO: construct optimizer.
+    # construct optimizer.
+    optimizer = optimizer_from_name(optimizer_name)
 
-    # TODO: compile model.
+    # compile model.
+    model = compile_binary_model(model=model,
+                                 optimizer=optimizer,
+                                 learning_rate=learning_rate)
+    
+    # record start time.
+    t0 = perf_counter()
 
-    # TODO: record start time.
+    # train.
+    history = train_model(model=model,
+                          split=split,
+                          epochs=epochs,
+                          batch_size=batch_size,
+                          patience=patience,
+                          verbose=1)
 
-    # TODO: train.
+    # compute elapsed time.
+    t = perf_counter()
 
-    # TODO: compute elapsed time.
+    # evaluate.
+    eval_results = evaluate_model(model=model, split=split)
 
-    # TODO: evaluate.
+    # return the result dictionary.
+    return {
+        "optimizer": optimizer_name,
+        "epochs_run": len(history.history["loss"]),
+        "seconds": t - t0,
+        "test_loss": eval_results["test_loss"],
+        "test_accuracy": eval_results["test_accuracy"],
+        "history": history,
+        "model": model, # or history.model
 
-    # TODO: return the result dictionary.
-
-    raise NotImplementedError("TODO: implement run_optimizer_experiment")
+    }
 
 
 def compare_optimizers(
@@ -615,9 +640,18 @@ def compare_optimizers(
     A compact loop or list comprehension is sufficient.
     """
 
-    # TODO: call run_optimizer_experiment once per optimizer name.
+    results = []
+    for i_optimizer in names:
+        i_optimizer_results = run_optimizer_experiment(split,
+                                                       optimizer_name=i_optimizer,
+                                                       epochs=80,
+                                                       batch_size=32,
+                                                       learning_rate=1e-3,
+                                                       patience=15,)
+        
+        results.append(i_optimizer_results)
 
-    raise NotImplementedError("TODO: implement compare_optimizers")
+    return results
 
 
 def available_devices():
