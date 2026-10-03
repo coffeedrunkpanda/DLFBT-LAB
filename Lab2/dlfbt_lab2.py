@@ -392,7 +392,6 @@ def build_improved_model(input_dim):
     return model
 
 
-
 def build_regularized_model(input_dim, l2_strength=1e-4):
     """
     Build an MLP using L2 kernel regularization.
@@ -411,13 +410,17 @@ def build_regularized_model(input_dim, l2_strength=1e-4):
     ----
     Create the L2 regularizer and apply it to both hidden Dense layers.
     """
+    
+    reg = tf.keras.regularizers.l2(l2_strength)
 
-    # TODO:
-    # reg = tf.keras.regularizers.l2(...)
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape = (input_dim, )),
+        tf.keras.layers.Dense(32, activation = "relu", kernel_regularizer = reg),
+        tf.keras.layers.Dense(16, activation = "relu", kernel_regularizer = reg),
+        tf.keras.layers.Dense(1, activation = "sigmoid")
+    ])
 
-    # TODO: build and return the Sequential model.
-
-    raise NotImplementedError("TODO: implement build_regularized_model")
+    return model
 
 
 def build_dropout_model(input_dim, rate=0.25):
@@ -439,10 +442,15 @@ def build_dropout_model(input_dim, rate=0.25):
     ----
     Create and return the model.
     """
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape = (input_dim, )),
+        tf.keras.layers.Dense(32, activation = "relu"),
+        tf.keras.layers.Dropout(rate),
+        tf.keras.layers.Dense(16, activation = "relu"),
+        tf.keras.layers.Dense(1, activation = "sigmoid")
+    ])
 
-    # TODO: build and return the Sequential model.
-
-    raise NotImplementedError("TODO: implement build_dropout_model")
+    return model
 
 
 def optimizer_from_name(name, learning_rate=1e-3):
@@ -486,9 +494,30 @@ def optimizer_from_name(name, learning_rate=1e-3):
     Implement the optimizer selection logic.
     """
 
-    # TODO: return the matching tf.keras.optimizers optimizer.
+    OPTIMIZERS = [
+        'Adam',
+        "SGD",
+        "RMSprop",
+        "Adagrad"
+    ]
 
-    raise NotImplementedError("TODO: implement optimizer_from_name")
+    optimizers_keys = [item.lower() for item in OPTIMIZERS]
+    optimizers_dict = dict(zip(optimizers_keys, OPTIMIZERS))
+
+    formatted_name = name.lower()
+
+    if formatted_name == "momentum":
+        configured_optimizer = tf.keras.optimizers.SGD(momentum = 0.9)
+
+    elif formatted_name == "nesterov":
+        configured_optimizer = tf.keras.optimizers.SGD(momentum = 0.9, nesterov = True)
+
+    else:
+        configured_optimizer = tf.keras.optimizers.get(optimizers_dict[formatted_name])
+
+    configured_optimizer.learning_rate = learning_rate
+
+    return configured_optimizer
 
 
 def run_optimizer_experiment(
