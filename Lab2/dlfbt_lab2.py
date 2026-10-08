@@ -52,7 +52,7 @@ def load_phoneme():
     dataset = np.genfromtxt(data_path, delimiter=",")
 
     # perform a shape / validity check.
-    assert (5404, 6) == dataset.shape #[DOUBT] is this correct? 
+    assert (5404, 6) == dataset.shape
 
     n_samples, n_features = dataset.shape
     
@@ -132,7 +132,7 @@ def prepare_data(
     """
 
     # TODO: validate test_size and val_size.
-    assert (test_size + val_size)<1 # [DOUBT] Is this necessary?
+    assert (test_size + val_size)<1 
 
     # first split -> train+validation(temp) and test.
     X_temp, X_test, y_temp, y_test = train_test_split (X,
@@ -239,10 +239,8 @@ def compile_binary_model(
     ----
     Compile the model and return it.
     """
-
-    # [DOUBT] Check this for bugs when you input a object optimizer 
     
-    if type(optimizer) == str and learning_rate:  
+    if isinstance(optimizer, str) and learning_rate!=None:  
         configured_optimizer = tf.keras.optimizers.get(optimizer.lower())
         configured_optimizer.learning_rate = learning_rate
 
@@ -346,7 +344,7 @@ def evaluate_model(model, split):
         y = split.y_test,
     )
 
-    return {"test_loss": loss, "test_accuracy": accuracy}
+    return {"test_loss": float(loss), "test_accuracy": float(accuracy)}
 
 
 def build_improved_model(input_dim):
@@ -497,7 +495,7 @@ def optimizer_from_name(name, learning_rate=1e-3):
     optimizers_keys = [item.lower() for item in OPTIMIZERS]
     optimizers_dict = dict(zip(optimizers_keys, OPTIMIZERS))
 
-    formatted_name = name.lower()
+    formatted_name = name.lower().replace(" ", "").replace("-", "")
 
     if formatted_name == "momentum":
         configured_optimizer = tf.keras.optimizers.SGD(momentum = 0.9)
@@ -580,10 +578,10 @@ def run_optimizer_experiment(
                           epochs=epochs,
                           batch_size=batch_size,
                           patience=patience,
-                          verbose=1)
+                          verbose=0)
 
     # compute elapsed time.
-    t = perf_counter()
+    t1 = perf_counter()
 
     # evaluate.
     eval_results = evaluate_model(model=model, split=split)
@@ -592,7 +590,7 @@ def run_optimizer_experiment(
     return {
         "optimizer": optimizer_name,
         "epochs_run": len(history.history["loss"]),
-        "seconds": t - t0,
+        "seconds": t1 - t0,
         "test_loss": eval_results["test_loss"],
         "test_accuracy": eval_results["test_accuracy"],
         "history": history,
@@ -639,10 +637,6 @@ def compare_optimizers(
     for i_optimizer in names:
         i_optimizer_results = run_optimizer_experiment(split,
                                                        optimizer_name=i_optimizer,
-                                                       epochs=80,
-                                                       batch_size=32,
-                                                       learning_rate=1e-3,
-                                                       patience=15,
                                                        **kwargs)
         
         results.append(i_optimizer_results)
