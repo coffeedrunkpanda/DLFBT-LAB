@@ -52,7 +52,7 @@ def load_phoneme():
     dataset = np.genfromtxt(data_path, delimiter=",")
 
     # perform a shape / validity check.
-    assert (5404, 6) == dataset.shape
+    assert (5404, 6) == dataset.shape #[DOUBT] is this correct? 
 
     n_samples, n_features = dataset.shape
     
@@ -132,7 +132,7 @@ def prepare_data(
     """
 
     # TODO: validate test_size and val_size.
-    assert (test_size + val_size)<1
+    assert (test_size + val_size)<1 # [DOUBT] Is this necessary?
 
     # first split -> train+validation(temp) and test.
     X_temp, X_test, y_temp, y_test = train_test_split (X,
@@ -165,7 +165,7 @@ def prepare_data(
         scaler = StandardScaler()
 
         # Fit only on X_train to avoid data leakage
-        fitted_scaler = scaler.fit(X_train)
+        fitted_scaler = scaler.fit(X_train) # [DOUBT] is this necessary? 
         X_train = fitted_scaler.transform(X_train)
         X_val = fitted_scaler.transform(X_val)
         X_test = fitted_scaler.transform(X_test)
@@ -240,22 +240,15 @@ def compile_binary_model(
     Compile the model and return it.
     """
 
-    OPTIMIZERS = [
-        'Adam',
-        "SGD",
-        "RMSprop",
-        "Adagrad"
-    ]
-
-    optimizers_keys = [item.upper() for item in OPTIMIZERS]
-    optimizers_dict = dict(zip(optimizers_keys, OPTIMIZERS))
+    # [DOUBT] Check this for bugs when you input a object optimizer 
     
-    configured_optimizer = None
-    if type(optimizer) == str and learning_rate:
-        
-        configured_optimizer = tf.keras.optimizers.get(optimizers_dict[optimizer.upper()])
+    if type(optimizer) == str and learning_rate:  
+        configured_optimizer = tf.keras.optimizers.get(optimizer.lower())
         configured_optimizer.learning_rate = learning_rate
-                
+
+    else: # If the optimizer is a optimizer object or a string without lr param.
+        configured_optimizer = None  
+    
     model.compile(
         optimizer = (configured_optimizer if configured_optimizer!= None else optimizer),
         loss = "binary_crossentropy",
@@ -387,7 +380,7 @@ def build_improved_model(input_dim):
     ])
 
     # compile the model
-    model = compile_binary_model(model, optimizer="adam", learning_rate=0.01)
+    model = compile_binary_model(model, optimizer="adam", learning_rate=1e-3)
     
     return model
 
@@ -512,8 +505,11 @@ def optimizer_from_name(name, learning_rate=1e-3):
     elif formatted_name == "nesterov":
         configured_optimizer = tf.keras.optimizers.SGD(momentum = 0.9, nesterov = True)
 
-    else:
+    elif formatted_name in optimizers_keys:
         configured_optimizer = tf.keras.optimizers.get(optimizers_dict[formatted_name])
+
+    else:
+        raise ValueError(f"Invalid Optimizer: {name}.")
 
     configured_optimizer.learning_rate = learning_rate
 
@@ -563,18 +559,17 @@ def run_optimizer_experiment(
     # make the run reproducible.
     set_reproducible(seed)
 
-    # build model.
+    # build model: use baseline model
     input_dim = split.X_train.shape[1]
-    model = build_dropout_model(input_dim=input_dim, rate = 0.15)
-    # model = build_regularized_model(input_dim=input_dim, l2_strength= 2e-2)
+    model = build_baseline_model(input_dim=input_dim)
 
     # construct optimizer.
-    optimizer = optimizer_from_name(optimizer_name)
+    optimizer = optimizer_from_name(optimizer_name,
+                                    learning_rate=learning_rate)
 
     # compile model.
     model = compile_binary_model(model=model,
-                                 optimizer=optimizer,
-                                 learning_rate=learning_rate)
+                                 optimizer=optimizer)
     
     # record start time.
     t0 = perf_counter()
@@ -647,7 +642,8 @@ def compare_optimizers(
                                                        epochs=80,
                                                        batch_size=32,
                                                        learning_rate=1e-3,
-                                                       patience=15,)
+                                                       patience=15,
+                                                       **kwargs)
         
         results.append(i_optimizer_results)
 
